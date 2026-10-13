@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <meta name="theme-color" content="#f7f8fb" />
+  <title>국기로 찾는 선대칭도형</title>
+  <style>
+    :root{
+      --bg:#f7f8fb; --card:#ffffff; --text:#1f2937; --muted:#64748b; --line:#cbd5e1;
+      --accent:#2563eb; --accent2:#dbeafe; --good:#16a34a; --bad:#dc2626; --warn:#f59e0b;
+      --zone:#f8fafc;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;background:var(--bg);color:var(--text);font-family:"Malgun Gothic","Apple SD Gothic Neo",Arial,sans-serif}
+    body{min-height:100vh}
+    button{font:inherit}
+    .app{max-width:1440px;margin:0 auto;padding:20px 22px 28px}
+    .topbar{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+    .brand h1{margin:0;font-size:clamp(26px,3vw,40px);line-height:1.2}
+    .brand p{margin:6px 0 0;color:var(--muted);font-size:clamp(14px,1.45vw,18px)}
+    .mode-tabs,.toolbar{display:flex;gap:8px;flex-wrap:wrap}
+    .btn{
+      min-height:48px;padding:10px 16px;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--text);
+      font-weight:800;cursor:pointer;box-shadow:0 1px 2px rgba(15,23,42,.04)
+    }
+    .btn:hover{border-color:#94a3b8}
+    .btn:focus-visible{outline:4px solid rgba(37,99,235,.22);outline-offset:2px}
+    .btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+    .btn.active{background:var(--accent2);color:#1d4ed8;border-color:#93c5fd}
+    .btn.danger{border-color:#fecaca}
+    .btn:disabled{opacity:.45;cursor:not-allowed}
+    .panel{background:var(--card);border:1px solid #e2e8f0;border-radius:18px;padding:18px}
+    .hidden{display:none!important}
+
+    /* Quiz */
+    .quiz-layout{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:18px;align-items:stretch}
+    .quiz-stage{
+      min-height:540px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+      background:linear-gradient(180deg,#fff,#fbfdff);border:1px solid #e2e8f0;border-radius:20px;padding:20px
+    }
+    .quiz-count{align-self:flex-start;font-weight:900;color:#334155;margin-bottom:10px}
+    .quiz-flag-frame{
+      width:min(78vw,680px);height:min(46vw,390px);max-height:390px;display:flex;align-items:center;justify-content:center;
+      background:#fff;border:1px solid #e2e8f0;border-radius:18px;padding:18px;box-shadow:0 10px 25px rgba(15,23,42,.06)
+    }
+    .quiz-flag-frame .flag-svg{width:100%;height:100%;max-width:100%;max-height:100%}
+    .quiz-question{font-size:clamp(24px,3vw,38px);font-weight:900;margin:24px 0 8px;text-align:center}
+    .quiz-answer{min-height:48px;font-size:clamp(26px,3.2vw,42px);font-weight:900;color:#1d4ed8}
+    .quiz-side{display:flex;flex-direction:column;gap:12px}
+    .quiz-side .panel{padding:16px}
+    .quiz-side h3{margin:0 0 8px}
+    .quiz-side p{margin:0;color:var(--muted);line-height:1.55}
+    .quiz-actions{display:grid;gap:9px}
+    .quiz-actions .btn{width:100%;font-size:18px}
+
+    /* Sorting */
+    .sort-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+    .sort-head .guide{font-size:17px;color:#475569}
+    .zones{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+    .zone{
+      min-height:290px;border:3px dashed #b9c4d3;border-radius:18px;background:var(--zone);padding:14px;
+      transition:.15s border-color,.15s background
+    }
+    .zone.drop-hot{border-color:var(--accent);background:#eff6ff}
+    .zone-title{font-size:clamp(22px,2.1vw,30px);font-weight:900;margin-bottom:4px}
+    .zone-desc{color:var(--muted);font-size:15px;margin-bottom:10px}
+    .zone-list,.pool-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:11px}
+    .pool-panel{border:1px solid #e2e8f0;background:#fff;border-radius:18px;padding:14px}
+    .pool-title{font-size:22px;font-weight:900;margin:0 0 10px}
+    .flag-card{
+      position:relative;min-width:0;background:#fff;border:2px solid #d7dee9;border-radius:14px;padding:8px;
+      cursor:grab;user-select:none;touch-action:none;transition:.12s transform,.12s border-color,.12s box-shadow
+    }
+    .flag-card:hover{box-shadow:0 6px 16px rgba(15,23,42,.08)}
+    .flag-card:active{cursor:grabbing}
+    .flag-card.selected{outline:4px solid rgba(245,158,11,.35);border-color:var(--warn)}
+    .flag-card.correct{border-color:var(--good);box-shadow:0 0 0 2px rgba(22,163,74,.10)}
+    .flag-card.wrong{border-color:var(--bad);box-shadow:0 0 0 2px rgba(220,38,38,.08)}
+    .flag-card .flag-box{
+      position:relative;height:92px;border-radius:9px;background:#fff;overflow:hidden;display:flex;align-items:center;justify-content:center
+    }
+    .flag-card .flag-svg{width:100%;height:100%;display:block}
+    .country-name{text-align:center;font-weight:900;margin-top:6px;line-height:1.2}
+    body.names-off .country-name{display:none}
+    .result-badge{
+      position:absolute;right:7px;top:7px;z-index:5;display:none;min-width:31px;height:31px;padding:0 8px;border-radius:999px;
+      align-items:center;justify-content:center;font-weight:900;background:#fff;border:1px solid #dbe2ea
+    }
+    body.checked .flag-card.correct .result-badge,
+    body.checked .flag-card.wrong .result-badge{display:flex}
+    .flag-card.correct .result-badge{color:var(--good)}
+    .flag-card.wrong .result-badge{color:var(--bad)}
+    .axis-caption{display:none;text-align:center;font-size:12px;color:#475569;font-weight:800;margin-top:4px}
+    body.axes-on .axis-caption{display:block}
+
+    .axis-layer{position:absolute;inset:0;pointer-events:none;display:none}
+    body.axes-on .axis-layer{display:block}
+    .axis-line{position:absolute;left:50%;top:50%;background:#7c3aed;opacity:.95;border-radius:3px;box-shadow:0 0 0 1px rgba(255,255,255,.85)}
+    .axis-line.v{width:3px;height:92%;transform:translate(-50%,-50%)}
+    .axis-line.h{width:94%;height:3px;transform:translate(-50%,-50%)}
+    .axis-line.d1{width:112%;height:3px;transform:translate(-50%,-50%) rotate(45deg)}
+    .axis-line.d2{width:112%;height:3px;transform:translate(-50%,-50%) rotate(-45deg)}
+    .no-axis-note{
+      display:none;position:absolute;left:50%;bottom:5px;transform:translateX(-50%);z-index:4;background:rgba(255,255,255,.94);
+      border:1px solid #dbe2ea;border-radius:8px;padding:3px 7px;font-size:11px;font-weight:900;color:#475569;white-space:nowrap
+    }
+    body.axes-on .flag-card[data-answer="no"] .no-axis-note{display:block}
+
+    .drag-ghost{
+      position:fixed;z-index:9999;pointer-events:none;opacity:.93;transform:scale(1.03);
+      box-shadow:0 16px 34px rgba(15,23,42,.22);margin:0
+    }
+    .drag-placeholder{border:2px dashed #94a3b8;border-radius:14px;background:#f8fafc}
+    .status{
+      margin-top:14px;padding:13px 15px;border-radius:13px;background:#eef2ff;color:#312e81;font-size:17px;font-weight:900
+    }
+    .footnote{margin-top:8px;color:var(--muted);font-size:13px;line-height:1.5}
+    .fullscreen-tip{font-size:13px;color:var(--muted);margin-top:8px}
+
+    @media(max-width:900px){
+      .quiz-layout{grid-template-columns:1fr}
+      .quiz-stage{min-height:440px}
+      .quiz-flag-frame{width:min(90vw,620px);height:min(55vw,350px)}
+      .quiz-side{display:grid;grid-template-columns:1fr 1fr}
+    }
+    @media(max-width:720px){
+      .app{padding:14px}
+      .zones{grid-template-columns:1fr}
+      .zone{min-height:220px}
+      .zone-list,.pool-list{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .quiz-side{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body class="names-off">
+  <main class="app">
+    <div class="topbar">
+      <div class="brand">
+        <h1>국기로 찾는 선대칭도형</h1>
+        <p>도입에서는 나라 이름을 맞히고, 정리에서는 같은 국기를 직접 분류해 봅니다.</p>
+      </div>
+      <div class="mode-tabs">
+        <button class="btn active" id="quizTab" type="button">① 국기 퀴즈</button>
+        <button class="btn" id="sortTab" type="button">② 선대칭 분류</button>
+        <button class="btn" id="fullBtn" type="button">전체 화면</button>
+      </div>
+    </div>
+
+    <section id="quizMode">
+      <div class="quiz-layout">
+        <div class="quiz-stage">
+          <div class="quiz-count" id="quizCount">1 / 12</div>
+          <div class="quiz-flag-frame" id="quizFlag"></div>
+          <div class="quiz-question">어느 나라의 국기일까요?</div>
+          <div class="quiz-answer" id="quizAnswer"></div>
+        </div>
+        <aside class="quiz-side">
+          <div class="panel">
+            <h3>수업 활용</h3>
+            <p>학생이 나라 이름을 말하면 <b>정답 보기</b>를 누르세요. 몇 개만 사용해도 되고, <b>국기 섞기</b>로 순서를 바꿀 수도 있습니다.</p>
+          </div>
+          <div class="quiz-actions panel">
+            <button class="btn primary" id="revealBtn" type="button">정답 보기</button>
+            <button class="btn" id="nextBtn" type="button">다음 국기</button>
+            <button class="btn" id="prevBtn" type="button">이전 국기</button>
+            <button class="btn" id="shuffleQuizBtn" type="button">국기 섞기</button>
+            <button class="btn" id="startSortBtn" type="button">정리 활동으로 이동</button>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section id="sortMode" class="hidden">
+      <div class="sort-head">
+        <div class="guide"><b>활동:</b> 국기를 손가락으로 끌어 알맞은 칸에 놓으세요. 드래그가 어렵다면 <b>국기 선택 → 분류 칸 터치</b>로도 이동할 수 있습니다.</div>
+        <div class="toolbar">
+          <button class="btn" id="toggleNamesBtn" type="button">국가 이름 보기</button>
+          <button class="btn" id="shuffleSortBtn" type="button">국기 섞기</button>
+          <button class="btn primary" id="checkBtn" type="button">정답 확인</button>
+          <button class="btn" id="axesBtn" type="button" disabled>대칭축 보기</button>
+          <button class="btn danger" id="resetBtn" type="button">처음으로</button>
+        </div>
+      </div>
+
+      <div class="zones">
+        <section class="zone" id="yesZone" aria-label="선대칭도형 분류 영역">
+          <div class="zone-title">선대칭도형</div>
+          <div class="zone-desc">한 직선을 따라 접었을 때 완전히 포개어지는 국기</div>
+          <div class="zone-list"></div>
+        </section>
+        <section class="zone" id="noZone" aria-label="선대칭도형이 아닌 분류 영역">
+          <div class="zone-title">선대칭도형이 아님</div>
+          <div class="zone-desc">어떤 직선을 따라 접어도 완전히 포개어지지 않는 국기</div>
+          <div class="zone-list"></div>
+        </section>
+      </div>
+
+      <section class="pool-panel" id="poolPanel">
+        <div class="pool-title">국기 모음</div>
+        <div class="pool-list" id="poolList"></div>
+      </section>
+
+      <div class="status" id="status" aria-live="polite">12개의 국기를 분류해 보세요.</div>
+      <div class="footnote">※ 국기의 바깥 테두리뿐 아니라 색과 무늬를 포함한 전체 모습으로 판단합니다. 이 파일은 외부 이미지·폰트·스크립트를 사용하지 않아 인터넷 없이도 실행됩니다.</div>
+      <div class="fullscreen-tip">전자칠판에서는 브라우저에서 이 파일을 열고 ‘전체 화면’을 누르면 수업용으로 크게 사용할 수 있습니다.</div>
+    </section>
+  </main>
+
+<script>
+(() => {
+  const FLAG_SVGS = {
+    italy: `<svg class="flag-svg" viewBox="0 0 180 120" aria-label="이탈리아 국기"><rect width="60" height="120" fill="#009246"/><rect x="60" width="60" height="120" fill="#fff"/><rect x="120" width="60" height="120" fill="#CE2B37"/></svg>`,
+    israel: `<svg class="flag-svg" viewBox="0 0 220 160" aria-label="이스라엘 국기"><rect width="220" height="160" fill="#fff"/><rect y="24" width="220" height="12" fill="#0038B8"/><rect y="124" width="220" height="12" fill="#0038B8"/><g fill="none" stroke="#0038B8" stroke-width="5"><polygon points="110,52 87,92 133,92"/><polygon points="110,108 87,68 133,68"/></g></svg>`,
+    canada: `<svg class="flag-svg" viewBox="0 0 180 120" aria-label="캐나다 국기"><rect width="180" height="120" fill="#fff"/><rect width="45" height="120" fill="#D80621"/><rect x="135" width="45" height="120" fill="#D80621"/><polygon fill="#D80621" points="90,18 84,34 73,29 77,42 63,39 70,54 58,59 76,67 69,83 86,77 86,101 94,101 94,77 111,83 104,67 122,59 110,54 117,39 103,42 107,29 96,34"/></svg>`,
+    korea: `<svg class="flag-svg" viewBox="0 0 180 120" aria-label="대한민국 국기"><rect width="180" height="120" fill="#fff"/><g transform="translate(90 60) rotate(-32)"><circle r="23" fill="#0047A0"/><path d="M-23 0 A23 23 0 0 1 23 0 A11.5 11.5 0 0 1 0 0 A11.5 11.5 0 0 0 -23 0Z" fill="#CD2E3A"/></g><g stroke="#111" stroke-width="4"><line x1="37" y1="27" x2="57" y2="18"/><line x1="40" y1="35" x2="60" y2="26"/><line x1="43" y1="43" x2="63" y2="34"/><line x1="118" y1="87" x2="138" y2="78"/><line x1="121" y1="95" x2="141" y2="86"/><line x1="124" y1="103" x2="144" y2="94"/><line x1="119" y1="25" x2="126" y2="28"/><line x1="132" y1="31" x2="139" y2="34"/><line x1="116" y1="33" x2="136" y2="42"/><line x1="114" y1="42" x2="121" y2="45"/><line x1="127" y1="48" x2="134" y2="51"/><line x1="40" y1="84" x2="47" y2="81"/><line x1="53" y1="78" x2="60" y2="75"/><line x1="43" y1="92" x2="63" y2="83"/><line x1="46" y1="100" x2="53" y2="97"/><line x1="59" y1="94" x2="66" y2="91"/></g></svg>`,
+    indonesia: `<svg class="flag-svg" viewBox="0 0 180 120" aria-label="인도네시아 국기"><rect width="180" height="60" fill="#CE1126"/><rect y="60" width="180" height="60" fill="#fff"/></svg>`,
+    qatar: `<svg class="flag-svg" viewBox="0 0 224 88" aria-label="카타르 국기"><rect width="224" height="88" fill="#8A1538"/><polygon fill="#fff" points="0,0 70,0 84,4.9 70,9.8 84,14.7 70,19.6 84,24.5 70,29.4 84,34.3 70,39.2 84,44 70,48.9 84,53.8 70,58.7 84,63.6 70,68.5 84,73.4 70,78.3 84,83.2 70,88 0,88"/></svg>`,
+    belgium: `<svg class="flag-svg" viewBox="0 0 180 120" aria-label="벨기에 국기"><rect width="60" height="120" fill="#111"/><rect x="60" width="60" height="120" fill="#FDDA24"/><rect x="120" width="60" height="120" fill="#EF3340"/></svg>`,
+    japan: `<svg class="flag-svg" viewBox="0 0 180 120" aria-label="일본 국기"><rect width="180" height="120" fill="#fff"/><circle cx="90" cy="60" r="29" fill="#BC002D"/></svg>`,
+    vietnam: `<svg class="flag-svg" viewBox="0 0 180 120" aria-label="베트남 국기"><rect width="180" height="120" fill="#DA251D"/><polygon fill="#FFEB00" points="90,22 99,49 128,49 104,66 113,94 90,77 67,94 76,66 52,49 81,49"/></svg>`,
+    china: `<svg class="flag-svg" viewBox="0 0 180 120" aria-label="중국 국기"><rect width="180" height="120" fill="#DE2910"/><g fill="#FFDE00"><polygon points="32,15 36,27 49,27 38,35 42,48 32,40 22,48 26,35 15,27 28,27"/><polygon points="62,15 64,21 71,21 66,25 68,31 62,27 57,31 59,25 54,21 60,21"/><polygon points="76,30 78,36 85,36 80,40 82,46 76,42 71,46 73,40 68,36 74,36"/><polygon points="76,51 78,57 85,57 80,61 82,67 76,63 71,67 73,61 68,57 74,57"/><polygon points="62,67 64,73 71,73 66,77 68,83 62,79 57,83 59,77 54,73 60,73"/></g></svg>`,
+    switzerland: `<svg class="flag-svg" viewBox="0 0 120 120" aria-label="스위스 국기"><rect width="120" height="120" fill="#D52B1E"/><rect x="50" y="24" width="20" height="72" fill="#fff"/><rect x="24" y="50" width="72" height="20" fill="#fff"/></svg>`,
+    usa: `<svg class="flag-svg" viewBox="0 0 190 100" aria-label="미국 국기"><rect width="190" height="100" fill="#fff"/><g fill="#B22234"><rect y="0" width="190" height="7.7"/><rect y="15.4" width="190" height="7.7"/><rect y="30.8" width="190" height="7.7"/><rect y="46.2" width="190" height="7.7"/><rect y="61.6" width="190" height="7.7"/><rect y="77" width="190" height="7.7"/><rect y="92.3" width="190" height="7.7"/></g><rect width="76" height="53.9" fill="#3C3B6E"/><g fill="#fff"><circle cx="8" cy="7" r="1.7"/><circle cx="20" cy="7" r="1.7"/><circle cx="32" cy="7" r="1.7"/><circle cx="44" cy="7" r="1.7"/><circle cx="56" cy="7" r="1.7"/><circle cx="68" cy="7" r="1.7"/><circle cx="14" cy="16" r="1.7"/><circle cx="26" cy="16" r="1.7"/><circle cx="38" cy="16" r="1.7"/><circle cx="50" cy="16" r="1.7"/><circle cx="62" cy="16" r="1.7"/><circle cx="8" cy="25" r="1.7"/><circle cx="20" cy="25" r="1.7"/><circle cx="32" cy="25" r="1.7"/><circle cx="44" cy="25" r="1.7"/><circle cx="56" cy="25" r="1.7"/><circle cx="68" cy="25" r="1.7"/><circle cx="14" cy="34" r="1.7"/><circle cx="26" cy="34" r="1.7"/><circle cx="38" cy="34" r="1.7"/><circle cx="50" cy="34" r="1.7"/><circle cx="62" cy="34" r="1.7"/><circle cx="8" cy="43" r="1.7"/><circle cx="20" cy="43" r="1.7"/><circle cx="32" cy="43" r="1.7"/><circle cx="44" cy="43" r="1.7"/><circle cx="56" cy="43" r="1.7"/><circle cx="68" cy="43" r="1.7"/><circle cx="14" cy="51" r="1.7"/><circle cx="26" cy="51" r="1.7"/><circle cx="38" cy="51" r="1.7"/><circle cx="50" cy="51" r="1.7"/><circle cx="62" cy="51" r="1.7"/></g></svg>`
+  };
+
+  const FLAGS = [
+    {id:"italy",name:"이탈리아",answer:"yes",axes:["h"],axisText:"가로 대칭축"},
+    {id:"israel",name:"이스라엘",answer:"yes",axes:["h","v"],axisText:"가로·세로 대칭축"},
+    {id:"canada",name:"캐나다",answer:"yes",axes:["v"],axisText:"세로 대칭축"},
+    {id:"korea",name:"대한민국",answer:"no",axes:[],axisText:"대칭축 없음"},
+    {id:"indonesia",name:"인도네시아",answer:"yes",axes:["v"],axisText:"세로 대칭축"},
+    {id:"qatar",name:"카타르",answer:"yes",axes:["h"],axisText:"가로 대칭축"},
+    {id:"belgium",name:"벨기에",answer:"yes",axes:["h"],axisText:"가로 대칭축"},
+    {id:"japan",name:"일본",answer:"yes",axes:["h","v"],axisText:"가로·세로 대칭축"},
+    {id:"vietnam",name:"베트남",answer:"yes",axes:["v"],axisText:"세로 대칭축"},
+    {id:"china",name:"중국",answer:"no",axes:[],axisText:"대칭축 없음"},
+    {id:"switzerland",name:"스위스",answer:"yes",axes:["h","v","d1","d2"],axisText:"가로·세로·두 대각선 대칭축"},
+    {id:"usa",name:"미국",answer:"no",axes:[],axisText:"대칭축 없음"}
+  ];
+
+  const byId = id => FLAGS.find(f => f.id === id);
+  const shuffle = arr => {
+    const a = [...arr];
+    for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+    return a;
+  };
+
+  // Mode switching
+  const quizTab = document.getElementById("quizTab");
+  const sortTab = document.getElementById("sortTab");
+  const quizMode = document.getElementById("quizMode");
+  const sortMode = document.getElementById("sortMode");
+  function setMode(mode){
+    const quiz = mode === "quiz";
+    quizMode.classList.toggle("hidden", !quiz);
+    sortMode.classList.toggle("hidden", quiz);
+    quizTab.classList.toggle("active", quiz);
+    sortTab.classList.toggle("active", !quiz);
+    window.scrollTo({top:0,behavior:"smooth"});
+  }
+  quizTab.addEventListener("click",()=>setMode("quiz"));
+  sortTab.addEventListener("click",()=>setMode("sort"));
+  document.getElementById("startSortBtn").addEventListener("click",()=>setMode("sort"));
+
+  // Fullscreen
+  document.getElementById("fullBtn").addEventListener("click", async () => {
+    try{
+      if(!document.fullscreenElement) await document.documentElement.requestFullscreen();
+      else await document.exitFullscreen();
+    }catch(e){}
+  });
+
+  // Quiz mode
+  let quizOrder = FLAGS.map(f=>f.id);
+  let quizIndex = 0;
+  let revealed = false;
+  const quizFlag = document.getElementById("quizFlag");
+  const quizCount = document.getElementById("quizCount");
+  const quizAnswer = document.getElementById("quizAnswer");
+  const revealBtn = document.getElementById("revealBtn");
+  function renderQuiz(){
+    const f = byId(quizOrder[quizIndex]);
+    quizFlag.innerHTML = FLAG_SVGS[f.id];
+    quizCount.textContent = `${quizIndex+1} / ${quizOrder.length}`;
+    quizAnswer.textContent = revealed ? f.name : "";
+    revealBtn.textContent = revealed ? "정답 가리기" : "정답 보기";
+  }
+  revealBtn.addEventListener("click",()=>{revealed=!revealed;renderQuiz();});
+  document.getElementById("nextBtn").addEventListener("click",()=>{quizIndex=(quizIndex+1)%quizOrder.length;revealed=false;renderQuiz();});
+  document.getElementById("prevBtn").addEventListener("click",()=>{quizIndex=(quizIndex-1+quizOrder.length)%quizOrder.length;revealed=false;renderQuiz();});
+  document.getElementById("shuffleQuizBtn").addEventListener("click",()=>{quizOrder=shuffle(quizOrder);quizIndex=0;revealed=false;renderQuiz();});
+  renderQuiz();
+
+  // Sort mode DOM
+  const poolList = document.getElementById("poolList");
+  const poolPanel = document.getElementById("poolPanel");
+  const yesZone = document.getElementById("yesZone");
+  const noZone = document.getElementById("noZone");
+  const yesList = yesZone.querySelector(".zone-list");
+  const noList = noZone.querySelector(".zone-list");
+  const status = document.getElementById("status");
+  const axesBtn = document.getElementById("axesBtn");
+  const toggleNamesBtn = document.getElementById("toggleNamesBtn");
+  let selectedCard = null;
+  let sortOrder = FLAGS.map(f=>f.id);
+  let dragState = null;
+
+  function axisMarkup(f){
+    if(!f.axes.length) return `<div class="no-axis-note">대칭축 없음</div>`;
+    return `<div class="axis-layer">${f.axes.map(a=>`<span class="axis-line ${a}"></span>`).join("")}</div>`;
+  }
+  function makeCard(f){
+    const card = document.createElement("div");
+    card.className = "flag-card";
+    card.tabIndex = 0;
+    card.setAttribute("role","button");
+    card.dataset.id = f.id;
+    card.dataset.answer = f.answer;
+    card.dataset.name = f.name;
+    card.innerHTML = `
+      <span class="result-badge"></span>
+      <div class="flag-box">${FLAG_SVGS[f.id]}${axisMarkup(f)}</div>
+      <div class="country-name">${f.name}</div>
+      <div class="axis-caption">${f.axisText}</div>`;
+    wireCard(card);
+    return card;
+  }
+  function rebuildPool(){
+    poolList.innerHTML = "";
+    sortOrder.forEach(id=>poolList.appendChild(makeCard(byId(id))));
+  }
+  function clearSelection(){
+    if(selectedCard) selectedCard.classList.remove("selected");
+    selectedCard = null;
+  }
+  function clearCheck(){
+    document.body.classList.remove("checked","axes-on");
+    axesBtn.disabled = true;
+    axesBtn.textContent = "대칭축 보기";
+    document.querySelectorAll(".flag-card").forEach(c=>{
+      c.classList.remove("correct","wrong");
+      const b=c.querySelector(".result-badge"); if(b) b.textContent="";
+    });
+  }
+  function moveCard(card,targetList){
+    targetList.appendChild(card);
+    clearSelection();
+    clearCheck();
+    status.textContent = `${card.dataset.name} 이동 완료`;
+  }
+  function selectCard(card){
+    clearSelection();
+    selectedCard = card;
+    card.classList.add("selected");
+    status.textContent = `${card.dataset.name} 선택됨 · 원하는 분류 칸을 누르세요.`;
+  }
+  function listForPoint(x,y){
+    const zones = [
+      {box:yesZone,list:yesList},{box:noZone,list:noList},{box:poolPanel,list:poolList}
+    ];
+    for(const z of zones){
+      const r=z.box.getBoundingClientRect();
+      if(x>=r.left && x<=r.right && y>=r.top && y<=r.bottom) return z.list;
+    }
+    return null;
+  }
+  function hotZoneAt(x,y){
+    [yesZone,noZone,poolPanel].forEach(z=>z.classList?.remove("drop-hot"));
+    for(const z of [yesZone,noZone]){
+      const r=z.getBoundingClientRect();
+      if(x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom){z.classList.add("drop-hot");return;}
+    }
+  }
+  function clearHot(){ yesZone.classList.remove("drop-hot"); noZone.classList.remove("drop-hot"); }
+
+  function wireCard(card){
+    card.addEventListener("click", e => {
+      if(dragState && dragState.moved) return;
+      selectCard(card);
+    });
+    card.addEventListener("keydown", e => {
+      if(e.key==="Enter" || e.key===" "){ e.preventDefault(); selectCard(card); }
+    });
+
+    card.addEventListener("pointerdown", e => {
+      if(e.pointerType==="mouse" && e.button!==0) return;
+      const rect=card.getBoundingClientRect();
+      dragState={
+        card, pointerId:e.pointerId, startX:e.clientX, startY:e.clientY,
+        dx:e.clientX-rect.left, dy:e.clientY-rect.top, moved:false, ghost:null, placeholder:null,
+        originParent:card.parentElement
+      };
+      try{ card.setPointerCapture(e.pointerId); }catch(_){}
+    });
+
+    card.addEventListener("pointermove", e => {
+      if(!dragState || dragState.card!==card || dragState.pointerId!==e.pointerId) return;
+      const dist=Math.hypot(e.clientX-dragState.startX,e.clientY-dragState.startY);
+      if(!dragState.moved && dist<8) return;
+      if(!dragState.moved){
+        dragState.moved=true;
+        const rect=card.getBoundingClientRect();
+        const ph=document.createElement("div");
+        ph.className="drag-placeholder";
+        ph.style.width=rect.width+"px"; ph.style.height=rect.height+"px";
+        card.parentElement.insertBefore(ph,card);
+        dragState.placeholder=ph;
+        const ghost=card.cloneNode(true);
+        ghost.classList.add("drag-ghost");
+        ghost.style.width=rect.width+"px";
+        ghost.style.height=rect.height+"px";
+        document.body.appendChild(ghost);
+        dragState.ghost=ghost;
+        card.style.visibility="hidden";
+      }
+      const g=dragState.ghost;
+      if(g){
+        g.style.left=(e.clientX-dragState.dx)+"px";
+        g.style.top=(e.clientY-dragState.dy)+"px";
+      }
+      hotZoneAt(e.clientX,e.clientY);
+      e.preventDefault();
+    });
+
+    const finish = e => {
+      if(!dragState || dragState.card!==card) return;
+      const d=dragState; dragState=null;
+      clearHot();
+      if(d.moved){
+        const target=listForPoint(e.clientX,e.clientY);
+        card.style.visibility="";
+        if(d.ghost) d.ghost.remove();
+        if(d.placeholder) d.placeholder.remove();
+        if(target){
+          target.appendChild(card);
+          clearSelection();
+          clearCheck();
+          status.textContent = `${card.dataset.name} 이동 완료`;
+        }else{
+          d.originParent.appendChild(card);
+          status.textContent = "분류 칸 안에 놓아 주세요.";
+        }
+      }
+    };
+    card.addEventListener("pointerup",finish);
+    card.addEventListener("pointercancel",finish);
+  }
+
+  [yesZone,noZone,poolPanel].forEach(box=>{
+    box.addEventListener("click",e=>{
+      if(!selectedCard || e.target.closest(".flag-card")) return;
+      const list = box===yesZone ? yesList : box===noZone ? noList : poolList;
+      moveCard(selectedCard,list);
+    });
+  });
+
+  document.getElementById("checkBtn").addEventListener("click",()=>{
+    let placed=0, correct=0;
+    document.querySelectorAll(".flag-card").forEach(card=>{
+      card.classList.remove("correct","wrong");
+      const inYes=yesList.contains(card), inNo=noList.contains(card);
+      if(!inYes && !inNo) return;
+      placed++;
+      const ok=(inYes && card.dataset.answer==="yes") || (inNo && card.dataset.answer==="no");
+      card.classList.add(ok?"correct":"wrong");
+      card.querySelector(".result-badge").textContent = ok ? "✓" : "다시";
+      if(ok) correct++;
+    });
+    document.body.classList.add("checked");
+    axesBtn.disabled=false;
+    if(placed<FLAGS.length){
+      status.textContent=`${placed}개를 분류했고 ${correct}개가 맞았습니다. 아직 ${FLAGS.length-placed}개가 남았습니다.`;
+    }else if(correct===FLAGS.length){
+      status.textContent="12개 모두 정확하게 분류했습니다!";
+    }else{
+      status.textContent=`12개 중 ${correct}개가 맞았습니다. 빨간 테두리의 국기를 다시 생각해 보세요.`;
+    }
+  });
+
+  axesBtn.addEventListener("click",()=>{
+    const on=document.body.classList.toggle("axes-on");
+    axesBtn.textContent = on ? "대칭축 숨기기" : "대칭축 보기";
+  });
+
+  toggleNamesBtn.addEventListener("click",()=>{
+    const off=document.body.classList.toggle("names-off");
+    toggleNamesBtn.textContent = off ? "국가 이름 보기" : "국가 이름 가리기";
+  });
+
+  document.getElementById("shuffleSortBtn").addEventListener("click",()=>{
+    sortOrder=shuffle(FLAGS.map(f=>f.id));
+    clearSelection(); clearCheck(); rebuildPool();
+    status.textContent="국기를 섞었습니다. 다시 분류해 보세요.";
+  });
+
+  document.getElementById("resetBtn").addEventListener("click",()=>{
+    sortOrder=FLAGS.map(f=>f.id);
+    clearSelection(); clearCheck(); rebuildPool();
+    status.textContent="12개의 국기를 분류해 보세요.";
+  });
+
+  rebuildPool();
+})();
+</script>
+</body>
+</html>
